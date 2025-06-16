@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic
 httpx
-openai
-numpy
+sentence-transformers
 scikit-learn
+numpy
+debugpy
