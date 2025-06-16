@@ -1,0 +1,53 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment
+.env
+*.env
+.venv/
+venv/
+ENV/
+env.bak/
+env/
+
+# PyCharm
+.idea/
+
+# VSCode
+.vscode/
+
+# macOS / Linux / Windows junk
+.DS_Store
+Thumbs.db
+
+# Logs and databases
+*.log
+*.sqlite3
+*.db
+
+# Docker
+*.pid
+*.sock
+*.tar
+.dockerignore
+
+# Test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+coverage.xml
+pytest_cache/
+.cache/
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Git
+.git/
+.gitignore
+token
