@@ -4,44 +4,74 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from models import Candidate, Job, MatchResult
 
-# Load the model once at import time
-MODEL = SentenceTransformer("all-MiniLM-L6-v2")
+# Load the embedding model once at import time to avoid repeated initialization
+MODEL: SentenceTransformer = SentenceTransformer("all-MiniLM-L6-v2")
+
 
 def embed_text(text: str) -> np.ndarray:
     """
-    Compute a dense embedding for `text` using a local SentenceTransformer model.
+    Convert input text into a normalized dense vector using SentenceTransformer.
+
+    Args:
+        text (str): A string to embed, typically a job or candidate profile.
+
+    Returns:
+        np.ndarray: A 1D NumPy array representing the embedded text vector.
     """
-    # returns a 1D numpy array
     return MODEL.encode(text, normalize_embeddings=True)
+
 
 def ai_score(candidate: Candidate, job: Job) -> float:
     """
-    Combine cosine similarity of embeddings with an experience factor.
+    Calculate a match score between a candidate and a job based on semantic similarity
+    and experience alignment.
+
+    Args:
+        candidate (Candidate): The candidate to evaluate.
+        job (Job): The job to compare against.
+
+    Returns:
+        float: A score between 0 and 1 indicating the quality of the match.
     """
-    # build the two texts
-    cand_text = " ".join(candidate.skills) + " " + candidate.resumeText
-    job_text = job.title + " " + job.description + " " + " ".join(job.requiredSkills)
+    # Concatenate candidate profile into a unified text
+    cand_text: str = " ".join(candidate.skills) + " " + candidate.resumeText
 
-    # embed both
-    v1 = embed_text(cand_text)
-    v2 = embed_text(job_text)
+    # Concatenate job description into a unified text
+    job_text: str = job.title + " " + job.description + " " + " ".join(job.requiredSkills)
 
-    # cosine similarity in [0,1]
-    score = float(cosine_similarity([v1], [v2])[0][0])
+    # Embed both candidate and job texts
+    candidate_vector: np.ndarray = embed_text(cand_text)
+    job_vector: np.ndarray = embed_text(job_text)
 
-    # experience factor: full if meets min, half otherwise
-    exp_factor = 1.0 if candidate.experienceYears >= job.minExperience else 0.5
+    # Compute cosine similarity between embeddings
+    similarity_score: float = float(cosine_similarity([candidate_vector], [job_vector])[0][0])
 
-    # combine (80% semantic match, 20% experience)
-    return round(score * 0.8 + exp_factor * 0.2, 4)
+    # Add experience factor (1.0 if candidate meets or exceeds requirement, else 0.5)
+    experience_factor: float = 1.0 if candidate.experienceYears >= job.minExperience else 0.5
+
+    # Final score is 80% semantic match + 20% experience alignment
+    final_score: float = round(similarity_score * 0.8 + experience_factor * 0.2, 4)
+    return final_score
+
 
 def match_candidate_to_jobs(candidate: Candidate, jobs: List[Job]) -> List[MatchResult]:
     """
-    Score each job for the given candidate, then sort descending.
+    Evaluate and rank a list of jobs based on how well they match the given candidate.
+
+    Args:
+        candidate (Candidate): The candidate to match.
+        jobs (List[Job]): A list of available jobs to evaluate.
+
+    Returns:
+        List[MatchResult]: A list of match results sorted by score (descending).
     """
-    results: List[MatchResult] = []
-    for job in jobs:
-        score = ai_score(candidate, job)
-        results.append(MatchResult(jobId=job.id, jobTitle=job.title, matchScore=score))
-    # sort by matchScore desc
-    return sorted(results, key=lambda x: x.matchScore, reverse=True)
+    match_results: List[MatchResult] = [
+        MatchResult(
+            jobId=job.id,
+            jobTitle=job.title,
+            matchScore=ai_score(candidate, job)
+        )
+        for job in jobs
+    ]
+
+    return sorted(match_results, key=lambda result: result.matchScore, reverse=True)
