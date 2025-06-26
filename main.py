@@ -1,9 +1,13 @@
 import os
-import httpx
-from fastapi import FastAPI, HTTPException
 from typing import List
-from models import Candidate, Job, MatchResult
+
+from fastapi import FastAPI, HTTPException
+
+from candidate_fetcher import fetch_candidate, fetch_candidates
+from consumer import consume_candidates
+from job_fetcher import fetch_jobs, fetch_job
 from matcher import match_candidate_to_jobs, ai_score
+from models import MatchResult
 
 app = FastAPI()
 
@@ -25,19 +29,9 @@ async def match_for_candidate(candidate_id: str) -> List[MatchResult]:
     Raises:
         HTTPException: If the candidate is not found or if job fetch fails.
     """
-    async with httpx.AsyncClient() as client:
-        # Fetch candidate data from external Spring Boot API
-        cand_resp = await client.get(f"{SPRING_BASE}/candidates/{candidate_id}")
-        if cand_resp.status_code != 200:
-            raise HTTPException(status_code=cand_resp.status_code, detail="Candidate not found")
-        candidate = Candidate(**cand_resp.json())
-
-        # Fetch all jobs (pagination support via ?size=1000)
-        jobs_resp = await client.get(f"{SPRING_BASE}/jobs?size=1000")
-        if jobs_resp.status_code != 200:
-            raise HTTPException(status_code=jobs_resp.status_code, detail="Jobs fetch failed")
-        jobs_data = jobs_resp.json().get("content", [])
-        jobs = [Job(**j) for j in jobs_data]
+    # Fetch candidate data from external Spring Boot API
+    candidate = await fetch_candidate(candidate_id)
+    jobs = await fetch_jobs()
 
     return match_candidate_to_jobs(candidate, jobs)
 
@@ -56,19 +50,10 @@ async def match_for_job(job_id: str) -> List[MatchResult]:
     Raises:
         HTTPException: If the job is not found or if candidate fetch fails.
     """
-    async with httpx.AsyncClient() as client:
-        # Fetch job details
-        job_resp = await client.get(f"{SPRING_BASE}/jobs/{job_id}")
-        if job_resp.status_code != 200:
-            raise HTTPException(status_code=job_resp.status_code, detail="Job not found")
-        job = Job(**job_resp.json())
+    job = await fetch_job(job_id)
 
-        # Fetch all candidates
-        cands_resp = await client.get(f"{SPRING_BASE}/candidates?size=1000")
-        if cands_resp.status_code != 200:
-            raise HTTPException(status_code=cands_resp.status_code, detail="Candidates fetch failed")
-        cands_data = cands_resp.json().get("content", [])
-        candidates = [Candidate(**c) for c in cands_data]
+    # Fetch all candidates
+    candidates = await fetch_candidates()
 
     # Evaluate match score for each candidate
     results: List[MatchResult] = [
@@ -77,3 +62,13 @@ async def match_for_job(job_id: str) -> List[MatchResult]:
     ]
 
     return sorted(results, key=lambda x: x.matchScore, reverse=True)
+
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+
+if __name__ == "__main__":
+    print("✅ AI Matcher Service Started")
+    consume_candidates()

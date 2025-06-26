@@ -6,3 +6,8 @@ sentence-transformers
 scikit-learn
 numpy
 debugpy
+kafka-python
+requests
+python-dotenv
+pydantic
+redis
