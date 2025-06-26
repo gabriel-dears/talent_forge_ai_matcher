@@ -8,12 +8,25 @@ This service is designed to be part of the [Talent Forge](https://github.com/gab
 
 ## 🔍 Features
 
-- ✅ Match a candidate to the most relevant jobs
-- ✅ Match a job to the most relevant candidates
-- ✅ AI-powered semantic scoring using `sentence-transformers`
-- ✅ Scikit-learn-based cosine similarity
-- ✅ RESTful FastAPI interface
-- ✅ Containerized with Docker for easy deployment
+- ✅ Match candidates to the most relevant jobs
+
+- ✅ Match jobs to the most relevant candidates
+
+- ✅ Semantic similarity with sentence-transformers
+
+- ✅ Cosine similarity via scikit-learn
+
+- ✅ Experience-based scoring adjustments
+
+- ✅ FastAPI-powered REST interface
+
+- ✅ Dockerized for smooth deployment
+
+- ✅ 🆕 Kafka consumer support: listens for new candidate/job events
+
+- ✅ 🆕 Modular architecture with consts.py, background Kafka handling, and clean Pydantic models
+
+
 
 ---
 
@@ -48,6 +61,7 @@ Start the app locally (requires Python environment):
 
 ```bash
 export SPRING_API_URL=http://localhost:8080/api/v1
+export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 uvicorn main:app --reload
 ```
 
@@ -101,12 +115,36 @@ final_score = 0.8 * semantic_similarity + 0.2 * experience_factor
 
 ```bash
 .
-├── main.py             # FastAPI endpoints
-├── matcher.py          # Matching logic and AI scoring
-├── models.py           # Pydantic data models
+├── main.py             # FastAPI app entrypoint
+├── matcher.py          # Core AI matching logic
+├── kafka_consumer.py   # Kafka background listener for candidate/job events
+├── consts.py           # Shared environment constants
+├── models.py           # Pydantic models and DTOs
 ├── requirements.txt    # Python dependencies
 └── README.md           # This file
 ```
+
+---
+
+## 📬 Kafka Integration
+
+The service consumes candidate and job events via Kafka, enabling asynchronous processing and decoupled microservice communication.
+
+### Kafka Topics
+
+| Topic Name      | Event Type         |
+| --------------- | ------------------ |
+| `new-candidate` | New candidate data |
+| `new-job`       | New job posting    |
+
+### Environment Variables
+
+| Variable                  | Default                        | Description                  |
+| ------------------------- | ------------------------------ | ---------------------------- |
+| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092`               | Kafka broker host            |
+| `SPRING_API_URL`          | `http://localhost:8080/api/v1` | Spring Boot backend base URL |
+
+Update topics and brokers in kafka_consumer.py or .env as needed.
 
 ---
 
@@ -122,6 +160,7 @@ Copy
 Edit
 docker run -p 8000:8000 \
   -e SPRING_API_URL=http://app:8080/api/v1 \
+  -e KAFKA_BOOTSTRAP_SERVERS=http://kafka:9092 \
   talent-forge-ai-matcher
 ```
 
@@ -144,27 +183,16 @@ SPRING_API_URL	http://localhost:8080/api/v1	URL of the Spring Boot Talent Forge 
 
 ---
 
+## 🤝 Integration with Talent Forge
+
+This service integrates with:
+
+- talent_forge: Spring Boot backend
+- Kafka (event queue)
+- Docker Compose in the parent repo spins up the whole platform
+
+---
+
 ## ✨ Contributors
 
 Gabriel Soares – @gabriel-dears
-
----
-
-## 🤝 Integration with Talent Forge
-
-This service is intended to be deployed alongside:
-
-talent_forge – the core Spring Boot API
-
-Use docker-compose in the parent repo to spin up the full system.
-
----
-
-## 🤝 Integration with Talent Forge
-
-This service is intended to be deployed alongside:
-
-talent_forge – the core Spring Boot API
-
-Use docker-compose in the parent repo to spin up the full system.
-
