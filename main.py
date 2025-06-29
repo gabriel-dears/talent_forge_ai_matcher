@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import os
 from typing import List
 
@@ -8,6 +10,11 @@ from consumer import consume_candidates
 from job_fetcher import fetch_jobs, fetch_job
 from matcher import match_candidate_to_jobs, ai_score
 from models import MatchResult
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] %(levelname)s in %(name)s: %(message)s"
+)
 
 app = FastAPI()
 
@@ -31,7 +38,9 @@ async def match_for_candidate(candidate_id: str) -> List[MatchResult]:
     """
     # Fetch candidate data from external Spring Boot API
     candidate = await fetch_candidate(candidate_id)
+    print(f"Fetching candidate: {candidate_id}")
     jobs = await fetch_jobs()
+    print(f"Fetching jobs: {candidate_id}")
 
     return match_candidate_to_jobs(candidate, jobs)
 
@@ -69,6 +78,7 @@ async def health_check():
     return {"status": "ok"}
 
 
-if __name__ == "__main__":
-    print("✅ AI Matcher Service Started")
-    consume_candidates()
+@app.on_event("startup")
+async def start_consumer_task():
+    print("🚀 Starting Kafka consumer in background task...")
+    asyncio.create_task(consume_candidates())

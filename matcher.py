@@ -8,7 +8,7 @@ from models import Candidate, Job, MatchResult
 from redis_client import redis_client
 
 MODEL = SentenceTransformer("all-MiniLM-L6-v2")
-MATCH_THRESHOLD = 0.5  # Filter out poor matches
+# MATCH_THRESHOLD = 0.5  # Filter out poor matches
 
 
 def embed_text(text: str) -> np.ndarray:
@@ -39,7 +39,7 @@ def ai_score(candidate: Candidate, job: Job) -> float:
 
     # Text sources
     job_text = f"{job.title} {job.description} {' '.join(job.requiredSkills)}"
-    cand_resume_text = candidate.resumeText
+    cand_resume_text = candidate.resume.text
     cand_skills_text = " ".join(candidate.skills)
 
     # Get or compute embeddings
@@ -66,11 +66,11 @@ def match_candidate_to_jobs(candidate: Candidate, jobs: List[Job]) -> List[Match
     results = []
     for job in jobs:
         score = ai_score(candidate, job)
-        if score >= MATCH_THRESHOLD:
-            results.append(MatchResult(
-                jobId=job.id,
-                jobTitle=job.title,
-                matchScore=score
-            ))
+        # if score >= MATCH_THRESHOLD:
+        results.append(MatchResult(
+            jobId=job.id,
+            jobTitle=job.title,
+            matchScore=score
+        ))
 
     return sorted(results, key=lambda x: x.matchScore, reverse=True)

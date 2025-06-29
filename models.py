@@ -1,23 +1,37 @@
-from pydantic import BaseModel
-from typing import List
+from datetime import date
+from typing import List, Any
 
+from pydantic import BaseModel, field_validator, model_validator
+
+
+class Resume(BaseModel):
+    text: str
+    filePath: str
 
 class Candidate(BaseModel):
-    """
-    Represents a job candidate profile.
-
-    Attributes:
-        id (str): Unique identifier for the candidate.
-        name (str): Full name of the candidate.
-        skills (List[str]): List of technical and soft skills.
-        experienceYears (int): Number of years of professional experience.
-        resumeText (str): Full text content of the candidate's resume.
-    """
     id: str
     name: str
+    email: str
+    resume: Resume
     skills: List[str]
     experienceYears: int
-    resumeText: str
+    dateNotification: date
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_date_notification(cls, data: Any) -> Any:
+        """
+        Transforms dateNotification from list format [YYYY, MM, DD] to `date`
+        object if needed.
+        """
+        if isinstance(data, dict):
+            raw_date = data.get("dateNotification")
+            if isinstance(raw_date, list) and len(raw_date) == 3:
+                try:
+                    data["dateNotification"] = date(*raw_date)
+                except Exception as e:
+                    raise ValueError(f"Invalid dateNotification format: {raw_date}") from e
+        return data
 
 
 class Job(BaseModel):
