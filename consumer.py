@@ -5,6 +5,7 @@ from aiokafka import AIOKafkaConsumer
 from kafka import KafkaConsumer
 
 from job_fetcher import fetch_jobs
+from mailer import send_email
 from matcher import match_candidate_to_jobs
 from models import Candidate
 from producer import send_notification_update
@@ -42,6 +43,8 @@ async def consume_candidates():
             if not match_results:
                 print(f"⚠️ No strong matches found for {candidate.name}.")
                 continue
+
+            send_email(candidate.email, candidate.name, match_results)
 
             # Async wrapper for sync Redis setex
             await asyncio.to_thread(redis_client.setex, email_key, EMAIL_SENT_TTL_SECONDS, "1")

@@ -11,7 +11,6 @@ def send_email(to_email: str, candidate_name: str, jobs_with_scores: list):
 
     subject = "Top Job Matches for You"
 
-    # Create message
     msg = MIMEMultipart()
     msg['From'] = from_email
     msg['To'] = to_email
@@ -19,13 +18,12 @@ def send_email(to_email: str, candidate_name: str, jobs_with_scores: list):
 
     html = f"<h2>Hello {candidate_name},</h2>"
     html += "<p>Here are your top job matches:</p><ul>"
-    for job, score in jobs_with_scores:
-        html += f"<li><b>{job.title}</b> — Score: {score}</li>"
+    for match in jobs_with_scores:
+        html += f"<li><b>{match.jobTitle}</b> — Score: {match.matchScore:.2f}</li>"
     html += "</ul><p>Good luck!</p>"
 
     msg.attach(MIMEText(html, 'html'))
 
-    # Send email
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
@@ -34,3 +32,4 @@ def send_email(to_email: str, candidate_name: str, jobs_with_scores: list):
         print(f"✅ Email sent to {to_email}")
     except Exception as e:
         print(f"❌ Failed to send email to {to_email}: {e}")
+
