@@ -17,10 +17,8 @@ def send_notification_update(candidate_id: str):
 
         value = {"candidateId": candidate_id}
 
-        # Headers que o Spring espera para identificar a classe Java
         headers = [
-            ("__TypeId__", b"com.gabrieldears.talent_forge.adapter.web.dto.NotificationUpdateDto"),
-            # Opcionalmente você pode adicionar outros headers como __KeyTypeId__ se usar chave customizada
+            ("__TypeId__", b"com.gabrieldears.talent_forge.adapter.web.dto.NotificationUpdateDto")
         ]
 
         future = producer.send(
